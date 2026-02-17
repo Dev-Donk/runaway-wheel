@@ -17,6 +17,31 @@
       "-std=c++17",
       "-c",
       "-o",
+      "obj/x64/Debug/runaway-wheel/character.o",
+      "../../src/character.h"
+    ],
+    "directory": "C:/dev/_Games/runaway-wheel/build/build_files",
+    "file": "C:/dev/_Games/runaway-wheel/src/character.h",
+    "output": "C:/dev/_Games/runaway-wheel/build/build_files/obj/x64/Debug/runaway-wheel/character.o"
+  },
+  {
+    "arguments": [
+      "g++",
+      "-MD",
+      "-MP",
+      "-DDEBUG",
+      "-DPLATFORM_DESKTOP",
+      "-DGRAPHICS_API_OPENGL_33",
+      "-D_WIN32",
+      "-I../../src",
+      "-I../../include",
+      "-I../external/raylib-master/src",
+      "-m64",
+      "-Wshadow",
+      "-g",
+      "-std=c++17",
+      "-c",
+      "-o",
       "obj/x64/Debug/runaway-wheel/resource_dir.o",
       "../../include/resource_dir.h"
     ],
@@ -42,12 +67,62 @@
       "-std=c++17",
       "-c",
       "-o",
+      "obj/x64/Debug/runaway-wheel/typingHelper.o",
+      "../../src/typingHelper.h"
+    ],
+    "directory": "C:/dev/_Games/runaway-wheel/build/build_files",
+    "file": "C:/dev/_Games/runaway-wheel/src/typingHelper.h",
+    "output": "C:/dev/_Games/runaway-wheel/build/build_files/obj/x64/Debug/runaway-wheel/typingHelper.o"
+  },
+  {
+    "arguments": [
+      "g++",
+      "-MD",
+      "-MP",
+      "-DDEBUG",
+      "-DPLATFORM_DESKTOP",
+      "-DGRAPHICS_API_OPENGL_33",
+      "-D_WIN32",
+      "-I../../src",
+      "-I../../include",
+      "-I../external/raylib-master/src",
+      "-m64",
+      "-Wshadow",
+      "-g",
+      "-std=c++17",
+      "-c",
+      "-o",
       "obj/x64/Debug/runaway-wheel/main.o",
       "../../src/main.c"
     ],
     "directory": "C:/dev/_Games/runaway-wheel/build/build_files",
     "file": "C:/dev/_Games/runaway-wheel/src/main.c",
     "output": "C:/dev/_Games/runaway-wheel/build/build_files/obj/x64/Debug/runaway-wheel/main.o"
+  },
+  {
+    "arguments": [
+      "g++",
+      "-MD",
+      "-MP",
+      "-DDEBUG",
+      "-DPLATFORM_DESKTOP",
+      "-DGRAPHICS_API_OPENGL_33",
+      "-D_WIN32",
+      "-I../../src",
+      "-I../../include",
+      "-I../external/raylib-master/src",
+      "-m64",
+      "-Wshadow",
+      "-g",
+      "-std=c++17",
+      "-c",
+      "-o",
+      "obj/x64/Debug/runaway-wheel/typingHelper.o",
+      "../../src/typingHelper.c"
+    ],
+    "directory": "C:/dev/_Games/runaway-wheel/build/build_files",
+    "file": "C:/dev/_Games/runaway-wheel/src/typingHelper.c",
+    "output": "C:/dev/_Games/runaway-wheel/build/build_files/obj/x64/Debug/runaway-wheel/typingHelper.o"
   },
   {
     "arguments": [
