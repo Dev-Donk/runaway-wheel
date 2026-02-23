@@ -17,12 +17,12 @@
       "-std=c++17",
       "-c",
       "-o",
-      "obj/x64/Debug/runaway-wheel/character.o",
-      "../../src/character.h"
+      "obj/x64/Debug/runaway-wheel/actor.o",
+      "../../src/actor.h"
     ],
     "directory": "C:/dev/_Games/runaway-wheel/build/build_files",
-    "file": "C:/dev/_Games/runaway-wheel/src/character.h",
-    "output": "C:/dev/_Games/runaway-wheel/build/build_files/obj/x64/Debug/runaway-wheel/character.o"
+    "file": "C:/dev/_Games/runaway-wheel/src/actor.h",
+    "output": "C:/dev/_Games/runaway-wheel/build/build_files/obj/x64/Debug/runaway-wheel/actor.o"
   },
   {
     "arguments": [
