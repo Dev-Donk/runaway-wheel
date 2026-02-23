@@ -7,7 +7,7 @@ typedef struct
 {
     Vector2 pos;
     Vector2 speed;
-    Texture2D texture2D;
+    Texture texture;
 } actor;
 
 

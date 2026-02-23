@@ -1,9 +1,10 @@
 /*
 
 Runaway Wheel Capstone Project
-INFSCI 1750 - Dmitriy Babichenko
-
 Author: Dante Samarco
+
+University of Pittsburgh, Spring 2026
+INFSCI 1750 - Dmitriy Babichenko
 
 */
 
@@ -31,11 +32,14 @@ int main ()
 	// Load assets
 	// --------------------------------------------------------------
 
+	// Actors
+	Texture game_actor_player 		= LoadTexture("player_test.png");
+
 	// Backgrounds
-	Texture game_sky_box 	= LoadTextureFromImage(GenImageGradientLinear(SCREEN_WIDTH, SCREEN_HEIGHT, 0, WHITE, SKYBLUE));
-	Texture game_foreground = LoadTexture("foreground_test.png");
-	Texture game_midground 	= LoadTexture("midground_test.png");
-	Texture game_background = LoadTexture("background_test.png");
+	Texture game_world_sky_box 		= LoadTextureFromImage(GenImageGradientLinear(SCREEN_WIDTH, SCREEN_HEIGHT, 0, WHITE, SKYBLUE));
+	Texture game_world_foreground 	= LoadTexture("foreground_test.png");
+	Texture game_world_midground 	= LoadTexture("midground_test.png");
+	Texture game_world_background 	= LoadTexture("background_test.png");
 
 	// --------------------------------------------------------------
 
@@ -49,6 +53,9 @@ int main ()
 	float scrolling_front 	= 0.0f; // Obstacles use this variable
 	float scrolling_mid 	= 0.0f;
 	float scrolling_back 	= 0.0f;
+
+	// Player
+	actor player = { (Vector2){ 32.0f, 704.0f }, (Vector2){ 0.0f, 0.0f }, game_actor_player};
 
 
 	// --------------------------------------------------------------
@@ -65,9 +72,9 @@ int main ()
 		scrolling_front -= 3.0f * game_difficulty;
 
 		// Textures is scaled twice it's size
-		if (scrolling_front <= -game_foreground.width * 2) 	scrolling_front = 0;
-		if (scrolling_mid 	<= -game_midground.width * 2) 	scrolling_mid = 0;
-		if (scrolling_back 	<= -game_background.width * 2) 	scrolling_back = 0;
+		if (scrolling_front <= -game_world_foreground.width * 6) 	scrolling_front = 0;
+		if (scrolling_mid 	<= -game_world_midground.width * 6) 	scrolling_mid = 0;
+		if (scrolling_back 	<= -game_world_background.width * 6) 	scrolling_back = 0;
 
 		// --------------------------------------------------------------
 
@@ -82,18 +89,21 @@ int main ()
 		// --------------------------------------------------------------
 
 		//Sky
-		DrawTexture(game_sky_box, 0, 0, WHITE);
+		DrawTexture(game_world_sky_box, 0, 0, WHITE);
 		// Background
-		DrawTextureEx(game_background, 	(Vector2){ scrolling_back, 0 }, 0.0f, 2.0f, WHITE);
-		DrawTextureEx(game_background, 	(Vector2){ game_background.width * 2 + scrolling_back, 0 }, 0.0f, 2.0f, WHITE);
+		DrawTextureEx(game_world_background, 	(Vector2){ scrolling_back, 0 }, 0.0f, 6.0f, WHITE);
+		DrawTextureEx(game_world_background, 	(Vector2){ game_world_background.width * 6 + scrolling_back, 0 }, 0.0f, 6.0f, WHITE);
 		// Background
-		DrawTextureEx(game_midground,	(Vector2){ scrolling_mid, 0 }, 0.0f, 2.0f, WHITE);
-		DrawTextureEx(game_midground, 	(Vector2){ game_midground.width * 2 + scrolling_mid, 0 }, 0.0f, 2.0f, WHITE);
+		DrawTextureEx(game_world_midground, 	(Vector2){ scrolling_mid, 0 }, 0.0f, 6.0f, WHITE);
+		DrawTextureEx(game_world_midground,		(Vector2){ game_world_midground.width * 6 + scrolling_mid, 0 }, 0.0f, 6.0f, WHITE);
 		// Foregorund
-		DrawTextureEx(game_foreground, 	(Vector2){ scrolling_front, 0 }, 0.0f, 2.0f, WHITE);
-		DrawTextureEx(game_foreground, 	(Vector2){ game_foreground.width * 2 + scrolling_front, 0 }, 0.0f, 2.0f, WHITE);
+		DrawTextureEx(game_world_foreground, 	(Vector2){ scrolling_front, 0 }, 0.0f, 6.0f, WHITE);
+		DrawTextureEx(game_world_foreground, 	(Vector2){ game_world_foreground.width * 6 + scrolling_front, 0 }, 0.0f, 6.0f, WHITE);
 
 		// --------------------------------------------------------------
+
+		// Actors
+		DrawTextureEx(player.texture, 			(Vector2){ player.pos.x, player.pos.y}, 0.0f, 6.0f, WHITE);
 
 		
 		// Text
@@ -107,10 +117,17 @@ int main ()
 	}
 
 	// cleanup
-	// unload our texture so it can be cleaned up
-	UnloadTexture(game_foreground);
-	UnloadTexture(game_midground);
-	UnloadTexture(game_background);
+	// --------------------------------------------------------------
+
+	UnloadTexture(game_world_sky_box);
+	UnloadTexture(game_world_foreground);
+	UnloadTexture(game_world_midground);
+	UnloadTexture(game_world_background);
+
+	UnloadTexture(game_actor_player);
+
+	// --------------------------------------------------------------
+
 
 	// destroy the window and cleanup the OpenGL context
 	CloseWindow();
