@@ -1,6 +1,12 @@
 
 #include "typingHelper.h"
 
+// Maybe??
+typedef struct {
+    char *data;
+    int  size;
+} entry;
+
 unsigned int max_words;
 unsigned int max_word_length;
 char **words;
