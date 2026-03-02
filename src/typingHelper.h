@@ -10,11 +10,21 @@ typedef enum
     PROMPT_FAIL
 } prompt_state;
 
+typedef struct {
+    char *data;
+    int  data_length;
+    struct prompt_entry *next;
+} prompt_entry;
+
 // Something that gets current word/phrase
 // Get current word/phrase length
 // Something that loads words/phrases into array. Dynamic size
 // Keep in mind amount of temrinators, different with linux and junk
-void load_text_from_file_to_arr(FILE *file, char **arr);
+void list_load_from_text_file(const char *file, prompt_entry *head);
+
+void list_print(prompt_entry *list);
+
+void list_free(prompt_entry *list);
 
 
 #endif

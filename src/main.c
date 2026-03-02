@@ -8,6 +8,8 @@ INFSCI 1750 - Dmitriy Babichenko
 
 */
 
+#include <stdlib.h>
+
 #include "raylib.h"
 #include "resource_dir.h"	// utility header for SearchAndSetResourceDir
 
@@ -56,6 +58,17 @@ int main ()
 
 	// Player
 	actor player = { (Vector2){ 32.0f, 704.0f }, (Vector2){ 0.0f, 0.0f }, game_actor_player};
+
+	// Text Loading
+	// Words
+	prompt_entry *head_for_words = (prompt_entry*)malloc(sizeof(prompt_entry));
+	list_load_from_text_file("words.txt", head_for_words);
+	list_print(head_for_words);
+
+	// Phrases
+	prompt_entry *head_for_phrases = (prompt_entry*)malloc(sizeof(prompt_entry));
+	list_load_from_text_file("phrases.txt", head_for_phrases);
+	list_print(head_for_phrases);
 
 
 	// --------------------------------------------------------------
@@ -125,6 +138,9 @@ int main ()
 	UnloadTexture(game_world_background);
 
 	UnloadTexture(game_actor_player);
+
+	list_free(head_for_words);
+	list_free(head_for_phrases);
 
 	// --------------------------------------------------------------
 

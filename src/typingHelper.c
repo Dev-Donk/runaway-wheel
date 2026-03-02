@@ -1,24 +1,72 @@
 
 #include "typingHelper.h"
 
-// Maybe??
-typedef struct {
-    char *data;
-    int  size;
-} entry;
+#include <stdlib.h>
+#include <string.h>
 
-unsigned int max_words;
-unsigned int max_word_length;
-char **words;
+#include "raylib.h"
 
-unsigned int max_phrases;
-unsigned int max_phrase_length;
-char **phrases;
-
-void load_text_from_file_to_arr(FILE *file, char **arr)
+void list_load_from_text_file(const char *file, prompt_entry *head)
 {
-    // Count all entries first, store into temp, then copy?
-    unsigned int entry_counter = 0;
+    if(!FileExists(file)) {
+        printf("\"%s\" does not exist.", file);
+        exit(-1);
+    }
+    
+    char *contents = LoadFileText(file);
+    char *token;
 
-    // Gonna need to parse by '\n', do not want any character to be part of parse
+    token = strtok(contents, "\n");
+
+    head->data = token;
+    head->data_length = strlen(token);
+    head->next = NULL;
+
+    prompt_entry *prev = head;
+
+    while(token != NULL) 
+    {
+        // printf("ADDED TOKEN: %s\n", token);
+        token = strtok(NULL, "\n");
+
+        if(token == NULL) {
+            continue;
+        }
+
+        prompt_entry *new_entry = (prompt_entry*)malloc(sizeof(prompt_entry));
+        new_entry->data         = token;
+        new_entry->data_length  = strlen(token);
+        new_entry->next = NULL;
+
+        prev->next = new_entry;
+
+        prev = new_entry;
+
+    }
+}
+
+void list_print(prompt_entry *list) 
+{
+    prompt_entry *curr = list;
+    while(curr != NULL)
+    {
+        printf("%-10.10s | %-d\n", curr->data, curr->data_length);
+        curr = (prompt_entry*)curr->next;
+    }
+}
+
+void list_free(prompt_entry *list)
+{
+    prompt_entry *curr = list;
+    prompt_entry *next = NULL;
+
+    while(curr != NULL)
+    {
+        next = (prompt_entry*)curr->next;
+
+        // printf("Unloaded: %-10.10s\n", curr->data);
+        free(curr);
+
+        curr = next;
+    }
 }
