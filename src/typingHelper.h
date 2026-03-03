@@ -11,20 +11,19 @@ typedef enum
 } prompt_state;
 
 typedef struct {
-    char *data;
-    int  data_length;
     struct prompt_entry *next;
+    int                 data_length;
+    char                *data;
 } prompt_entry;
 
-// Something that gets current word/phrase
-// Get current word/phrase length
-// Something that loads words/phrases into array. Dynamic size
 // Keep in mind amount of temrinators, different with linux and junk
-void list_load_from_text_file(const char *file, prompt_entry *head);
+int list_load_from_text_file(const char *file, prompt_entry *list_head);
 
 void list_print(prompt_entry *list);
 
 void list_free(prompt_entry *list);
+
+prompt_entry* list_get_random_entry(prompt_entry *list, int list_size);
 
 
 #endif

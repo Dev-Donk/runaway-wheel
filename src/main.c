@@ -6,6 +6,8 @@ Author: Dante Samarco
 University of Pittsburgh, Spring 2026
 INFSCI 1750 - Dmitriy Babichenko
 
+Assisted help from Dr. Thumrongsak
+
 */
 
 #include <stdlib.h>
@@ -18,6 +20,8 @@ INFSCI 1750 - Dmitriy Babichenko
 
 #define SCREEN_WIDTH 	2048
 #define SCREEN_HEIGHT 	1024
+
+#define SPRITE_SIZE_MULTIPLIER 8
 
 int main ()
 {
@@ -57,18 +61,24 @@ int main ()
 	float scrolling_back 	= 0.0f;
 
 	// Player
-	actor player = { (Vector2){ 32.0f, 704.0f }, (Vector2){ 0.0f, 0.0f }, game_actor_player};
+	actor player = { (Vector2){ 512.0f, 640.0f }, (Vector2){ 0.0f, 0.0f }, game_actor_player};
 
-	// Text Loading
+	// Text Loading & Prompts
 	// Words
-	prompt_entry *head_for_words = (prompt_entry*)malloc(sizeof(prompt_entry));
-	list_load_from_text_file("words.txt", head_for_words);
-	list_print(head_for_words);
+	prompt_entry *list_words	= (prompt_entry*)malloc(sizeof(prompt_entry));
+	int list_words_size;
+	list_words_size 			= list_load_from_text_file("words.txt", list_words);
+	list_print(list_words);
 
 	// Phrases
-	prompt_entry *head_for_phrases = (prompt_entry*)malloc(sizeof(prompt_entry));
-	list_load_from_text_file("phrases.txt", head_for_phrases);
-	list_print(head_for_phrases);
+	prompt_entry *list_phrases 	= (prompt_entry*)malloc(sizeof(prompt_entry));
+	int list_phrases_size;
+	list_phrases_size 			= list_load_from_text_file("phrases.txt", list_phrases);
+	list_print(list_phrases);
+
+	printf("Words size: %d\nPhrases size: %d\n", list_words_size, list_phrases_size);
+
+	prompt_entry *current_prompt = list_get_random_entry(list_words, list_words_size);
 
 
 	// --------------------------------------------------------------
@@ -84,12 +94,18 @@ int main ()
 		scrolling_mid 	-= 1.5f * game_difficulty;
 		scrolling_front -= 3.0f * game_difficulty;
 
-		// Textures is scaled twice it's size
-		if (scrolling_front <= -game_world_foreground.width * 6) 	scrolling_front = 0;
-		if (scrolling_mid 	<= -game_world_midground.width * 6) 	scrolling_mid = 0;
-		if (scrolling_back 	<= -game_world_background.width * 6) 	scrolling_back = 0;
+		if (scrolling_front <= -game_world_foreground.width * SPRITE_SIZE_MULTIPLIER) 	scrolling_front = 0;
+		if (scrolling_mid 	<= -game_world_midground.width  * SPRITE_SIZE_MULTIPLIER) 	scrolling_mid = 0;
+		if (scrolling_back 	<= -game_world_background.width * SPRITE_SIZE_MULTIPLIER) 	scrolling_back = 0;
 
 		// --------------------------------------------------------------
+
+		// Input
+		// Just to test random entry getting
+		if(IsKeyDown(KEY_SPACE))
+		{
+			current_prompt = list_get_random_entry(list_words, list_words_size);
+		}
 
 		// Drawing
 		// --------------------------------------------------------------
@@ -104,23 +120,26 @@ int main ()
 		//Sky
 		DrawTexture(game_world_sky_box, 0, 0, WHITE);
 		// Background
-		DrawTextureEx(game_world_background, 	(Vector2){ scrolling_back, 0 }, 0.0f, 6.0f, WHITE);
-		DrawTextureEx(game_world_background, 	(Vector2){ game_world_background.width * 6 + scrolling_back, 0 }, 0.0f, 6.0f, WHITE);
-		// Background
-		DrawTextureEx(game_world_midground, 	(Vector2){ scrolling_mid, 0 }, 0.0f, 6.0f, WHITE);
-		DrawTextureEx(game_world_midground,		(Vector2){ game_world_midground.width * 6 + scrolling_mid, 0 }, 0.0f, 6.0f, WHITE);
+		DrawTextureEx(game_world_background, 	(Vector2){ scrolling_back, 0.0f }, 0.0f, (float)SPRITE_SIZE_MULTIPLIER, WHITE);
+		DrawTextureEx(game_world_background, 	(Vector2){ game_world_background.width * (float)SPRITE_SIZE_MULTIPLIER + scrolling_back, 0.0f }, 
+												0.0f, (float)SPRITE_SIZE_MULTIPLIER, WHITE);
+		// Midground
+		DrawTextureEx(game_world_midground, 	(Vector2){ scrolling_mid, 0.0f }, 0.0f, (float)SPRITE_SIZE_MULTIPLIER, WHITE);
+		DrawTextureEx(game_world_midground,		(Vector2){ game_world_midground.width * (float)SPRITE_SIZE_MULTIPLIER + scrolling_mid, 0.0f }, 
+												0.0f, (float)SPRITE_SIZE_MULTIPLIER, WHITE);
 		// Foregorund
-		DrawTextureEx(game_world_foreground, 	(Vector2){ scrolling_front, 0 }, 0.0f, 6.0f, WHITE);
-		DrawTextureEx(game_world_foreground, 	(Vector2){ game_world_foreground.width * 6 + scrolling_front, 0 }, 0.0f, 6.0f, WHITE);
+		DrawTextureEx(game_world_foreground, 	(Vector2){ scrolling_front, 0.0f }, 0.0f, (float)SPRITE_SIZE_MULTIPLIER, WHITE);
+		DrawTextureEx(game_world_foreground, 	(Vector2){ game_world_foreground.width * (float)SPRITE_SIZE_MULTIPLIER + scrolling_front, 0.0f }, 
+												0.0f, (float)SPRITE_SIZE_MULTIPLIER, WHITE);
 
 		// --------------------------------------------------------------
 
 		// Actors
-		DrawTextureEx(player.texture, 			(Vector2){ player.pos.x, player.pos.y}, 0.0f, 6.0f, WHITE);
+		DrawTextureEx(player.texture, 			(Vector2){ player.pos.x, player.pos.y}, 0.0f, (float)SPRITE_SIZE_MULTIPLIER, WHITE);
 
 		
 		// Text
-		//DrawText("Hello Raylib", 200,200,20,WHITE);
+		DrawText(current_prompt->data, 200, 200, 20, RED);
 
 		// --------------------------------------------------------------
 
@@ -139,8 +158,8 @@ int main ()
 
 	UnloadTexture(game_actor_player);
 
-	list_free(head_for_words);
-	list_free(head_for_phrases);
+	list_free(list_words);
+	list_free(list_phrases);
 
 	// --------------------------------------------------------------
 
