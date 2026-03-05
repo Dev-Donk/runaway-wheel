@@ -5,14 +5,14 @@
 
 typedef struct {
     struct prompt_entry *head;
-    size_t size;
+    size_t              size;
 } prompt_list;
 
 // Would want this to be private for security reasons,
 // but lazy and returning entry would be annoying without
 typedef struct {
     struct prompt_entry *next;
-    int                 data_length;
+    size_t              data_length;
     char                *data;
 } prompt_entry;
 

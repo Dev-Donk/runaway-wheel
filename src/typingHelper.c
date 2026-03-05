@@ -6,6 +6,8 @@
 
 #include "raylib.h"
 
+#define MAX_TOKEN_SIZE 100
+
 void list_load_from_text_file(prompt_list *list, const char *file)
 {
     if(!FileExists(file)) { // This relies on set resource directory in include
@@ -14,18 +16,26 @@ void list_load_from_text_file(prompt_list *list, const char *file)
     }
     
     size_t list_size_count  = 0;
+
     char *contents          = LoadFileText(file);
     char *token             = strtok(contents, "\n\0");
+    size_t token_size       = 0;
+
     prompt_entry *prev      = NULL;
 
     while(token != NULL) 
     {
 
-        if(token == NULL) 
+        // Get size of token and check
+        token_size = strlen(token);
+
+        if(token_size > MAX_TOKEN_SIZE) 
         {
-            break;
+            token = strtok(NULL, "\n");
+            continue;
         }
 
+        // Create new entry, check, then load
         prompt_entry *new_entry = (prompt_entry*)malloc(sizeof(prompt_entry));
 
         if(new_entry == NULL)
@@ -35,15 +45,17 @@ void list_load_from_text_file(prompt_list *list, const char *file)
         }
 
         new_entry->data         = token;
-        new_entry->data_length  = strlen(token);
+        new_entry->data_length  = token_size;
         new_entry->next         = NULL;
 
+        // If no head, then assign to head
         if(list->head == NULL)
         {
             list->head = (struct prompt_entry*)new_entry;
         }
         
         // Could probably be improved around here, but works for now
+        // Link prev with new_entry
         if(prev != NULL)
         {
             prev->next  = (struct prompt_entry*)new_entry;
@@ -51,6 +63,7 @@ void list_load_from_text_file(prompt_list *list, const char *file)
 
         // printf("ADDED TOKEN: %s\n", token);
 
+        // Prep for next entry
         prev = new_entry;
         list_size_count++;
 
@@ -66,7 +79,7 @@ void list_print(prompt_list *list)
 
     for (size_t i = 0; i < list->size || curr != NULL; i++)
     {
-        printf("Entry [%3d/%3d]: \"%-10.10s\" | Size: %-d\n", i + 1, list->size, curr->data, curr->data_length);
+        printf("Prompt [ %-3d/%3d ][ %-3d ] \"%-.50s\"\n", i + 1, list->size, curr->data_length, curr->data);
         curr = (prompt_entry*)curr->next;
     }
     
