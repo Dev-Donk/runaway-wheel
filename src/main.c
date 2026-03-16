@@ -11,23 +11,30 @@ Assisted help from Dr. Thumrongsak
 */
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "raylib.h"
-#include "resource_dir.h"	// utility header for SearchAndSetResourceDir
+#include "resource_dir.h"
 
 #include "typingHelper.h"
 #include "actor.h"
 
-#define SCREEN_WIDTH 	2048
-#define SCREEN_HEIGHT 	1280
+#define SCREEN_WIDTH 	(int)2048
+#define SCREEN_HEIGHT 	(int)1280
 
 #define SPRITE_SIZE_MULTIPLIER 8
+
+#define WORLD_GROUND (float)640.0f
+#define ACTOR_PLAYER_MAX_JUMP_HEIGHT (float)300.0f
+
 
 typedef enum 
 {
     PROMPT_TYPING,
     PROMPT_SUCCESS,
-    PROMPT_FAIL
+    PROMPT_FAIL,
+	PROMPT_LOAD,
+	JUMP
 } game_state;
 
 int main ()
@@ -61,8 +68,10 @@ int main ()
 	// Game Essentialsssss
 	// --------------------------------------------------------------
 
-	game_state g_state = PROMPT_TYPING;
+	game_state g_state = PROMPT_LOAD;
 	char key_pressed = 0;
+
+	float delta_time;
 	
 	// Difficulty
 	float game_difficulty = 2.0f;
@@ -75,7 +84,7 @@ int main ()
 	float scrolling_back_1 	= 0.0f;
 
 	// Player
-	actor player = { (Vector2){ 512.0f, 640.0f }, (Vector2){ 0.0f, 0.0f }, game_actor_player};
+	actor player = { (Vector2){ 512.0f, WORLD_GROUND }, (Vector2){ 0.0f, 0.0f }, game_actor_player};
 
 	// Text Loading & Prompts
 	// Words
@@ -98,7 +107,14 @@ int main ()
 	list_load_from_text_file(list_phrases, "phrases.txt");
 	list_print(list_phrases);
 
-	prompt_entry *current_prompt = list_get_random_entry(list_words);
+	prompt_entry *current_prompt;
+	char *current_prompt_data;
+	size_t current_prompt_location;
+
+	char input_buffer[MAX_TOKEN_SIZE];
+
+	float time_left;
+	unsigned int counter = 0;
 
 
 	// --------------------------------------------------------------
@@ -110,18 +126,19 @@ int main ()
 	{
 		// Update
 		// --------------------------------------------------------------
+		delta_time = GetFrameTime();
 
 		// World
 		// --------------------------------------------------------------
-		scrolling_front 	-= 3.0f * game_difficulty;
+		scrolling_front 	-= (300.0f * game_difficulty) * delta_time;
 
-		scrolling_mid_0 	-= 1.5f * game_difficulty;
-		scrolling_mid_1 	-= 1.25f * game_difficulty;
+		scrolling_mid_0 	-= (70.0f * game_difficulty) * delta_time;
+		scrolling_mid_1 	-= (50.0f * game_difficulty) * delta_time;
 
-		scrolling_back_0 	-= 1.0f * game_difficulty;
-		scrolling_back_1 	-= 0.75f * game_difficulty;
+		scrolling_back_0 	-= (30.0f * game_difficulty) * delta_time;
+		scrolling_back_1 	-= (10.0f * game_difficulty) * delta_time;
 
-		if (scrolling_front <= -game_world_foreground.width * SPRITE_SIZE_MULTIPLIER) 	scrolling_front = 0;
+		if (scrolling_front		<= -game_world_foreground.width * SPRITE_SIZE_MULTIPLIER) 	scrolling_front = 0;
 
 		if (scrolling_mid_0 	<= -game_world_middleground_0.width  * SPRITE_SIZE_MULTIPLIER) 	scrolling_mid_0 = 0;
 		if (scrolling_mid_1 	<= -game_world_middleground_1.width  * SPRITE_SIZE_MULTIPLIER) 	scrolling_mid_1 = 0;
@@ -134,18 +151,75 @@ int main ()
 
 		// Input
 		// --------------------------------------------------------------
-		if(IsKeyDown(KEY_SPACE))
-		{
-			current_prompt = list_get_random_entry(list_words); // Test prompt retrieval
-		}
 
+		// Essentially just a player state machine.. kinda
 		switch (g_state)
 		{
 		case PROMPT_TYPING:
-			key_pressed = GetKeyPressed();
+			key_pressed = GetCharPressed();
 
-			if(key_pressed != 0)
+			if(key_pressed == *current_prompt_data && key_pressed != 0)
+			{
 				printf("%c", key_pressed);
+				input_buffer[current_prompt_location] = key_pressed;
+
+				current_prompt_data++;
+				current_prompt_location++;
+			}
+
+			if(current_prompt_location >= current_prompt->data_length)
+			{
+				g_state = PROMPT_SUCCESS;
+			}
+			else if(time_left <= 0.0f)
+			{
+				g_state = PROMPT_FAIL;
+			}
+
+			time_left -= 0.1;
+
+			break;
+
+		case PROMPT_SUCCESS:
+
+			printf(" | SUCCESS!!!\n");
+			counter++;
+
+			player.pos.y -= ACTOR_PLAYER_MAX_JUMP_HEIGHT;
+
+			g_state = JUMP;
+
+			break;
+
+		case JUMP:
+
+			if(player.pos.y < WORLD_GROUND)
+			{
+				player.pos.y += 10.0f;
+			}
+			else
+			{
+				g_state = PROMPT_LOAD;
+			}	
+
+			break;
+
+		case PROMPT_FAIL:
+
+			printf(" | FAIL!!!");
+
+			break;
+
+		case PROMPT_LOAD:
+
+			current_prompt 				= list_get_random_entry(list_words); // Test prompt retrieval
+			current_prompt_data 		= current_prompt->data;
+			current_prompt_location 	= 0;
+			time_left 					= 100.0f; // Test value
+
+			memset(input_buffer, 0, sizeof(input_buffer)); // Who cares if it's a lil slow! :D
+
+			g_state = PROMPT_TYPING;
 
 			break;
 		
@@ -188,11 +262,16 @@ int main ()
 		// --------------------------------------------------------------
 
 		// Actors
-		DrawTextureEx(player.texture, 			(Vector2){ player.pos.x, player.pos.y}, 0.0f, (float)SPRITE_SIZE_MULTIPLIER, WHITE);
+		DrawTextureEx(player.texture, (Vector2){ player.pos.x, player.pos.y }, 0.0f, (float)SPRITE_SIZE_MULTIPLIER, WHITE);
 
 		
 		// UI
-		DrawText(current_prompt->data, 200, 200, 20, RED);
+		DrawText(current_prompt->data, 200, 200, 50, DARKGRAY);
+		DrawText(input_buffer, 200, 200, 50, RED);
+
+
+		DrawText(TextFormat("%02.02f", time_left), 10, 30, 20, DARKGRAY);
+		DrawText(TextFormat("%d", counter), 200, 30, 20, DARKGRAY);
 		// --------------------------------------------------------------
 
 		

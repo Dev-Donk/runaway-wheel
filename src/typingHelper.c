@@ -6,8 +6,6 @@
 
 #include "raylib.h"
 
-#define MAX_TOKEN_SIZE 100
-
 void list_load_from_text_file(prompt_list *list, const char *file)
 {
     if(!FileExists(file)) { // This relies on set resource directory in include
