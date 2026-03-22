@@ -24,8 +24,16 @@ Assisted help from Dr. Thumrongsak
 
 #define SPRITE_SIZE_MULTIPLIER 8
 
-#define WORLD_GROUND (float)640.0f
-#define ACTOR_PLAYER_MAX_JUMP_HEIGHT (float)300.0f
+#define WORLD_GROUND 			(float)1024.0f
+#define WORLD_FOREGROUND_SPEED 	(float)600.0f
+#define WORLD_MIDGROUND_SPEED 	(float)200.0f
+#define WORLD_BACKGROUND_SPEED 	(float)100.0f
+
+// player world ground equals 640
+#define ACTOR_PLAYER_MAX_JUMP_HEIGHT 	(float)300.0f
+#define ACTOR_PLAYER_ON_GROUND 		 	(float)(WORLD_GROUND - 384.0f)
+
+#define ACTOR_OBSTACLE_ON_GROUND		(float)(WORLD_GROUND - 128.0f)
 
 
 typedef enum 
@@ -35,7 +43,7 @@ typedef enum
     PROMPT_FAIL,
 	PROMPT_LOAD,
 	JUMP
-} game_state;
+} state;
 
 int main ()
 {
@@ -53,7 +61,9 @@ int main ()
 	// --------------------------------------------------------------
 
 	// Actors
-	Texture game_actor_player 			= LoadTexture("player.png");
+	Texture game_actor_player 							= LoadTexture("player.png");
+	Texture game_actor_obstacle_cactus					= LoadTexture("cactus.png");
+	Texture game_actor_obstacle_danger_sign_0			= LoadTexture("danger_sign_0.png");
 
 	// Backgrounds
 	Texture game_world_sky_box 			= LoadTextureFromImage(GenImageGradientLinear(SCREEN_WIDTH, SCREEN_HEIGHT, 0, WHITE, SKYBLUE));
@@ -68,23 +78,27 @@ int main ()
 	// Game Essentialsssss
 	// --------------------------------------------------------------
 
-	game_state g_state = PROMPT_LOAD;
+	state game_state = PROMPT_LOAD;
 	char key_pressed = 0;
 
+	// Time
 	float delta_time;
+	float game_timer;
 	
-	// Difficulty
-	float game_difficulty = 2.0f;
+	// Difficulty & Score
+	float game_difficulty = 1.0f;
+	unsigned int game_score = 0;
 
 	// Background speeds
-	float scrolling_front 	= 0.0f; // Obstacles use this variable
+	float scrolling_front 	= 0.0f;
 	float scrolling_mid_0 	= 0.0f;
 	float scrolling_mid_1 	= 0.0f;
 	float scrolling_back_0 	= 0.0f;
 	float scrolling_back_1 	= 0.0f;
 
-	// Player
-	actor player = { (Vector2){ 512.0f, WORLD_GROUND }, (Vector2){ 0.0f, 0.0f }, game_actor_player};
+	// Actors
+	actor player = { (Vector2){ 512.0f, ACTOR_PLAYER_ON_GROUND }, (Vector2){ 0.0f, 0.0f }, game_actor_player};
+	actor obstacle = { (Vector2){ SCREEN_WIDTH, ACTOR_OBSTACLE_ON_GROUND }, (Vector2){ 0.0f, 0.0f }, game_actor_obstacle_cactus};
 
 	// Text Loading & Prompts
 	// Words
@@ -113,10 +127,6 @@ int main ()
 
 	char input_buffer[MAX_TOKEN_SIZE];
 
-	float time_left;
-	unsigned int counter = 0;
-
-
 	// --------------------------------------------------------------
 
 	SetTargetFPS(60); // I mean.. It's a small game, most Windows devices should support
@@ -130,21 +140,21 @@ int main ()
 
 		// World
 		// --------------------------------------------------------------
-		scrolling_front 	-= (300.0f * game_difficulty) * delta_time;
+		scrolling_front 	-= (WORLD_FOREGROUND_SPEED 				* game_difficulty) * delta_time;
 
-		scrolling_mid_0 	-= (70.0f * game_difficulty) * delta_time;
-		scrolling_mid_1 	-= (50.0f * game_difficulty) * delta_time;
+		scrolling_mid_0 	-= (WORLD_MIDGROUND_SPEED 				* game_difficulty) * delta_time;
+		scrolling_mid_1 	-= ((WORLD_MIDGROUND_SPEED - 25.0f) 	* game_difficulty) * delta_time;
 
-		scrolling_back_0 	-= (30.0f * game_difficulty) * delta_time;
-		scrolling_back_1 	-= (10.0f * game_difficulty) * delta_time;
+		scrolling_back_0 	-= (WORLD_BACKGROUND_SPEED 				* game_difficulty) * delta_time;
+		scrolling_back_1 	-= ((WORLD_BACKGROUND_SPEED - 25.0f) 	* game_difficulty) * delta_time;
 
-		if (scrolling_front		<= -game_world_foreground.width * SPRITE_SIZE_MULTIPLIER) 	scrolling_front = 0;
+		if (scrolling_front		<= -game_world_foreground.width 		* SPRITE_SIZE_MULTIPLIER) 	scrolling_front = 0;
 
-		if (scrolling_mid_0 	<= -game_world_middleground_0.width  * SPRITE_SIZE_MULTIPLIER) 	scrolling_mid_0 = 0;
-		if (scrolling_mid_1 	<= -game_world_middleground_1.width  * SPRITE_SIZE_MULTIPLIER) 	scrolling_mid_1 = 0;
+		if (scrolling_mid_0 	<= -game_world_middleground_0.width  	* SPRITE_SIZE_MULTIPLIER) 	scrolling_mid_0 = 0;
+		if (scrolling_mid_1 	<= -game_world_middleground_1.width  	* SPRITE_SIZE_MULTIPLIER) 	scrolling_mid_1 = 0;
 
-		if (scrolling_back_0 	<= -game_world_background_0.width * SPRITE_SIZE_MULTIPLIER) 	scrolling_back_0 = 0;
-		if (scrolling_back_1 	<= -game_world_background_1.width * SPRITE_SIZE_MULTIPLIER) 	scrolling_back_1 = 0;
+		if (scrolling_back_0 	<= -game_world_background_0.width 		* SPRITE_SIZE_MULTIPLIER) 	scrolling_back_0 = 0;
+		if (scrolling_back_1 	<= -game_world_background_1.width 		* SPRITE_SIZE_MULTIPLIER) 	scrolling_back_1 = 0;
 		// --------------------------------------------------------------
 
 		// --------------------------------------------------------------
@@ -153,7 +163,7 @@ int main ()
 		// --------------------------------------------------------------
 
 		// Essentially just a player state machine.. kinda
-		switch (g_state)
+		switch (game_state)
 		{
 		case PROMPT_TYPING:
 			key_pressed = GetCharPressed();
@@ -161,65 +171,82 @@ int main ()
 			if(key_pressed == *current_prompt_data && key_pressed != 0)
 			{
 				printf("%c", key_pressed);
-				input_buffer[current_prompt_location] = key_pressed;
+				input_buffer[current_prompt_location++] = key_pressed;
 
 				current_prompt_data++;
-				current_prompt_location++;
 			}
 
 			if(current_prompt_location >= current_prompt->data_length)
 			{
-				g_state = PROMPT_SUCCESS;
+				game_state = PROMPT_SUCCESS;
 			}
-			else if(time_left <= 0.0f)
+			else if(game_timer <= 0.0f)
 			{
-				g_state = PROMPT_FAIL;
+				game_state = PROMPT_FAIL;
 			}
 
-			time_left -= 0.1;
+			game_timer -= 0.1 * (delta_time * 10);
 
 			break;
 
 		case PROMPT_SUCCESS:
 
 			printf(" | SUCCESS!!!\n");
-			counter++;
+			game_score++;
+
+			if(game_score % 5 == 0 && game_difficulty < 5.0f)
+			{
+				game_difficulty += 0.5;
+			}
 
 			player.pos.y -= ACTOR_PLAYER_MAX_JUMP_HEIGHT;
 
-			g_state = JUMP;
+			game_state = JUMP;
 
 			break;
 
 		case JUMP:
 
-			if(player.pos.y < WORLD_GROUND)
+			if(player.pos.y < ACTOR_PLAYER_ON_GROUND)
 			{
 				player.pos.y += 10.0f;
 			}
-			else
+
+			if(obstacle.pos.x > -SCREEN_WIDTH)
 			{
-				g_state = PROMPT_LOAD;
+				obstacle.pos.x -= (WORLD_FOREGROUND_SPEED * game_difficulty) * delta_time;
+			}
+
+			if(player.pos.y == ACTOR_PLAYER_ON_GROUND && obstacle.pos.x < -SCREEN_WIDTH)
+			{
+				obstacle.pos.x 	= SCREEN_WIDTH;
+				game_state 		= PROMPT_LOAD;
 			}	
 
 			break;
 
 		case PROMPT_FAIL:
 
-			printf(" | FAIL!!!");
+			printf("\nFAIL!!!");
 
 			break;
 
 		case PROMPT_LOAD:
 
-			current_prompt 				= list_get_random_entry(list_words); // Test prompt retrieval
+			if(GetRandomValue(0, 1))
+			{
+				current_prompt = list_get_random_entry(list_words);
+			} else {
+				current_prompt = list_get_random_entry(list_phrases);
+			}
+
 			current_prompt_data 		= current_prompt->data;
 			current_prompt_location 	= 0;
-			time_left 					= 100.0f; // Test value
+			game_timer 					= (current_prompt->data_length * 2) / game_difficulty;
 
 			memset(input_buffer, 0, sizeof(input_buffer)); // Who cares if it's a lil slow! :D
 
-			g_state = PROMPT_TYPING;
+			game_state = PROMPT_TYPING;
 
 			break;
 		
@@ -263,15 +290,22 @@ int main ()
 
 		// Actors
 		DrawTextureEx(player.texture, (Vector2){ player.pos.x, player.pos.y }, 0.0f, (float)SPRITE_SIZE_MULTIPLIER, WHITE);
+		DrawTextureEx(obstacle.texture, (Vector2){ obstacle.pos.x, obstacle.pos.y }, 0.0f, (float)SPRITE_SIZE_MULTIPLIER, WHITE);
 
 		
 		// UI
-		DrawText(current_prompt->data, 200, 200, 50, DARKGRAY);
-		DrawText(input_buffer, 200, 200, 50, RED);
 
+		if(game_state != JUMP && game_state != PROMPT_LOAD)
+		{
+			DrawText(current_prompt->data, 200, SCREEN_HEIGHT / 2, 50, BLACK);
+			DrawText(input_buffer, 200, SCREEN_HEIGHT / 2, 50, GRAY);
 
-		DrawText(TextFormat("%02.02f", time_left), 10, 30, 20, DARKGRAY);
-		DrawText(TextFormat("%d", counter), 200, 30, 20, DARKGRAY);
+			DrawText(TextFormat("%05.02f", game_timer), 10, 30, 20, DARKGRAY);
+			DrawText(TextFormat("%d", game_score), 200, 30, 20, DARKGRAY);
+		}
+
+		DrawText(TextFormat("Game state: %d", game_state), 200, 50, 20, DARKGRAY);
+		DrawText(TextFormat("Difficulty: %.02f", game_difficulty), 200, 70, 20, DARKGRAY);
 		// --------------------------------------------------------------
 
 		
@@ -290,6 +324,8 @@ int main ()
 	UnloadTexture(game_world_background_1);
 
 	UnloadTexture(game_actor_player);
+	UnloadTexture(game_actor_obstacle_cactus);
+	UnloadTexture(game_actor_obstacle_danger_sign_0);
 
 	list_free(list_words);
 	list_free(list_phrases);
