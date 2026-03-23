@@ -10,6 +10,8 @@ Assisted help from Dr. Thumrongsak
 
 */
 
+// Includes
+// --------------------------------------------------------------
 #include <stdlib.h>
 #include <string.h>
 
@@ -18,24 +20,35 @@ Assisted help from Dr. Thumrongsak
 
 #include "typingHelper.h"
 #include "actor.h"
+// --------------------------------------------------------------
 
+// Macros
+// --------------------------------------------------------------
 #define SCREEN_WIDTH 	(int)2048
 #define SCREEN_HEIGHT 	(int)1280
 
 #define SPRITE_SIZE_MULTIPLIER 8
+#define BY_SPRITE_SIZE(a) (float)((a) * (SPRITE_SIZE_MULTIPLIER))
+
+#define GAME_MIN_TIMER 		(float)2.25f
+#define GAME_MAX_DIFFICULTY	(float)10.0f
 
 #define WORLD_GROUND 			(float)1024.0f
 #define WORLD_FOREGROUND_SPEED 	(float)600.0f
 #define WORLD_MIDGROUND_SPEED 	(float)200.0f
 #define WORLD_BACKGROUND_SPEED 	(float)100.0f
 
-// player world ground equals 640
-#define ACTOR_PLAYER_MAX_JUMP_HEIGHT 	(float)300.0f
-#define ACTOR_PLAYER_ON_GROUND 		 	(float)(WORLD_GROUND - 384.0f)
+#define ACTOR_PLAYER_MAX_JUMP_HEIGHT 			(float)300.0f
+#define ACTOR_PLAYER_POS_X 		 				(float)(64.0f * SPRITE_SIZE_MULTIPLIER)
+#define ACTOR_PLAYER_ON_GROUND 		 			(float)(WORLD_GROUND - (48.0f * SPRITE_SIZE_MULTIPLIER))
+#define ACTOR_PLAYER_JUMP_SPEED					(float)750.0f
 
-#define ACTOR_OBSTACLE_ON_GROUND		(float)(WORLD_GROUND - 128.0f)
+#define ACTOR_OBSTACLE_ON_GROUND				(float)(WORLD_GROUND - (16.0f * SPRITE_SIZE_MULTIPLIER))
+#define ACTOR_COLLISION_OBSTACLE_ON_GROUND		(float)(WORLD_GROUND - (16.0f * SPRITE_SIZE_MULTIPLIER))
+// --------------------------------------------------------------
 
-
+// Types
+// --------------------------------------------------------------
 typedef enum 
 {
     PROMPT_TYPING,
@@ -44,6 +57,12 @@ typedef enum
 	PROMPT_LOAD,
 	JUMP
 } state;
+// --------------------------------------------------------------
+
+// Function Prototypes
+// --------------------------------------------------------------
+float set_game_timer(float p_length, float g_difficulty);
+// --------------------------------------------------------------
 
 int main ()
 {
@@ -56,6 +75,9 @@ int main ()
 
 	// Utility function from resource_dir.h to find the resources folder and set it as the current working directory so we can load from it
 	SearchAndSetResourceDir("resources");
+
+	Image game_icon = LoadImage("cactus.png");
+	SetWindowIcon(game_icon);
 
 	// Load assets
 	// --------------------------------------------------------------
@@ -97,8 +119,18 @@ int main ()
 	float scrolling_back_1 	= 0.0f;
 
 	// Actors
-	actor player = { (Vector2){ 512.0f, ACTOR_PLAYER_ON_GROUND }, (Vector2){ 0.0f, 0.0f }, game_actor_player};
-	actor obstacle = { (Vector2){ SCREEN_WIDTH, ACTOR_OBSTACLE_ON_GROUND }, (Vector2){ 0.0f, 0.0f }, game_actor_obstacle_cactus};
+	actor player = { (Vector2){ ACTOR_PLAYER_POS_X, ACTOR_PLAYER_ON_GROUND }, game_actor_player, };
+	{
+		player.a_pos 			= (Vector2){ ACTOR_PLAYER_POS_X, ACTOR_PLAYER_ON_GROUND };
+		player.a_texture		= game_actor_player;
+		player.a_collision_box	= (Rectangle){ ACTOR_PLAYER_POS_X + BY_SPRITE_SIZE(64.0f), ACTOR_PLAYER_ON_GROUND + BY_SPRITE_SIZE(32.0f), BY_SPRITE_SIZE(16.0f), BY_SPRITE_SIZE(16.0f) };
+	}
+	actor obstacle;
+	{
+		obstacle.a_pos 				= (Vector2){ SCREEN_WIDTH, ACTOR_OBSTACLE_ON_GROUND };
+		obstacle.a_texture			= game_actor_obstacle_cactus;
+		obstacle.a_collision_box	= (Rectangle){ SCREEN_WIDTH, ACTOR_OBSTACLE_ON_GROUND, BY_SPRITE_SIZE(16.0f), BY_SPRITE_SIZE(16.0f) };
+	}
 
 	// Text Loading & Prompts
 	// Words
@@ -194,12 +226,10 @@ int main ()
 			printf(" | SUCCESS!!!\n");
 			game_score++;
 
-			if(game_score % 5 == 0 && game_difficulty < 5.0f)
+			if(game_score % 5 == 0 && game_difficulty < GAME_MAX_DIFFICULTY)
 			{
 				game_difficulty += 0.5;
 			}
-
-			player.pos.y -= ACTOR_PLAYER_MAX_JUMP_HEIGHT;
 
 			game_state = JUMP;
 
@@ -207,21 +237,42 @@ int main ()
 
 		case JUMP:
 
-			if(player.pos.y < ACTOR_PLAYER_ON_GROUND)
+			// Update Player
+			// --------------------------------------------------------------
+			if(player.a_pos.y < ACTOR_PLAYER_ON_GROUND && !CheckCollisionRecs(player.a_collision_box, obstacle.a_collision_box))
 			{
-				player.pos.y += 10.0f;
-			}
+				player.a_pos.y += ACTOR_PLAYER_JUMP_SPEED * delta_time; // More gravity like when game gets faster
 
-			if(obstacle.pos.x > -SCREEN_WIDTH)
-			{
-				obstacle.pos.x -= (WORLD_FOREGROUND_SPEED * game_difficulty) * delta_time;
+				if(player.a_pos.y > ACTOR_PLAYER_ON_GROUND)
+				{
+					player.a_pos.y = ACTOR_PLAYER_ON_GROUND;
+				}
 			}
-
-			if(player.pos.y == ACTOR_PLAYER_ON_GROUND && obstacle.pos.x < -SCREEN_WIDTH)
+			else if(CheckCollisionRecs(player.a_collision_box, obstacle.a_collision_box))
 			{
-				obstacle.pos.x 	= SCREEN_WIDTH;
-				game_state 		= PROMPT_LOAD;
+				player.a_pos.y -= (ACTOR_PLAYER_JUMP_SPEED * game_difficulty) * delta_time;
+			}
+			// --------------------------------------------------------------
+
+			// Update Obstacle
+			// --------------------------------------------------------------
+			if(obstacle.a_pos.x > -SCREEN_WIDTH)
+			{
+				obstacle.a_pos.x 			-= (WORLD_FOREGROUND_SPEED * game_difficulty) * delta_time;
+				obstacle.a_collision_box.x 	-= (WORLD_FOREGROUND_SPEED * game_difficulty) * delta_time;
+			}
+			// --------------------------------------------------------------
+
+			// Check if both are done
+			// --------------------------------------------------------------
+			if(player.a_pos.y == ACTOR_PLAYER_ON_GROUND && obstacle.a_pos.x < -SCREEN_WIDTH)
+			{
+				obstacle.a_pos.x 			= SCREEN_WIDTH;
+				obstacle.a_collision_box.x 	= SCREEN_WIDTH;
+
+				game_state 			= PROMPT_LOAD;
 			}	
+			// --------------------------------------------------------------
 
 			break;
 
@@ -242,7 +293,7 @@ int main ()
 
 			current_prompt_data 		= current_prompt->data;
 			current_prompt_location 	= 0;
-			game_timer 					= (current_prompt->data_length * 2) / game_difficulty;
+			game_timer 					= set_game_timer(current_prompt->data_length, game_difficulty);
 
 			memset(input_buffer, 0, sizeof(input_buffer)); // Who cares if it's a lil slow! :D
 
@@ -289,8 +340,11 @@ int main ()
 		// --------------------------------------------------------------
 
 		// Actors
-		DrawTextureEx(player.texture, (Vector2){ player.pos.x, player.pos.y }, 0.0f, (float)SPRITE_SIZE_MULTIPLIER, WHITE);
-		DrawTextureEx(obstacle.texture, (Vector2){ obstacle.pos.x, obstacle.pos.y }, 0.0f, (float)SPRITE_SIZE_MULTIPLIER, WHITE);
+		DrawRectangleRec(player.a_collision_box, GREEN);
+		DrawTextureEx(player.a_texture, (Vector2){ player.a_pos.x, player.a_pos.y }, 0.0f, (float)SPRITE_SIZE_MULTIPLIER, WHITE);
+
+		DrawRectangleRec(obstacle.a_collision_box, RED);
+		DrawTextureEx(obstacle.a_texture, (Vector2){ obstacle.a_pos.x, obstacle.a_pos.y }, 0.0f, (float)SPRITE_SIZE_MULTIPLIER, WHITE);
 
 		
 		// UI
@@ -300,7 +354,7 @@ int main ()
 			DrawText(current_prompt->data, 200, SCREEN_HEIGHT / 2, 50, BLACK);
 			DrawText(input_buffer, 200, SCREEN_HEIGHT / 2, 50, GRAY);
 
-			DrawText(TextFormat("%05.02f", game_timer), 10, 30, 20, DARKGRAY);
+			DrawText(TextFormat("%02.02f", game_timer), 10, 30, 20, DARKGRAY);
 			DrawText(TextFormat("%d", game_score), 200, 30, 20, DARKGRAY);
 		}
 
@@ -315,6 +369,8 @@ int main ()
 
 	// cleanup
 	// --------------------------------------------------------------
+
+	UnloadImage(game_icon);
 
 	UnloadTexture(game_world_sky_box);
 	UnloadTexture(game_world_foreground);
@@ -336,4 +392,10 @@ int main ()
 	// destroy the window and cleanup the OpenGL context
 	CloseWindow();
 	return 0;
+}
+
+// Checks to see if less than GAME_MIN_TIMER, and returns calculated value or GAME_MIN_TIMER
+float set_game_timer(float p_length, float g_difficulty) 
+{
+	return (p_length * 2) / g_difficulty > GAME_MIN_TIMER ? (p_length * 2) / g_difficulty : GAME_MIN_TIMER;
 }

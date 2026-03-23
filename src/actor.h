@@ -1,13 +1,13 @@
-#ifndef CHARACTER_H
-#define CHARACTER_H
+#ifndef ACTOR_H
+#define ACTOR_H
 
 #include "raylib.h"
 
 typedef struct 
 {
-    Vector2 pos;
-    Vector2 speed;
-    Texture texture;
+    Vector2     a_pos;
+    Texture     a_texture;
+    Rectangle   a_collision_box;
 } actor;
 
 
