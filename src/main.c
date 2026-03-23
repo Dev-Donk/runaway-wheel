@@ -24,19 +24,19 @@ Assisted help from Dr. Thumrongsak
 
 // Macros
 // --------------------------------------------------------------
-#define SCREEN_WIDTH 	(int)2048
-#define SCREEN_HEIGHT 	(int)1280
+#define SCREEN_WIDTH 							(int)2048
+#define SCREEN_HEIGHT 							(int)1280
 
 #define SPRITE_SIZE_MULTIPLIER 8
-#define BY_SPRITE_SIZE(a) (float)((a) * (SPRITE_SIZE_MULTIPLIER))
+#define BY_SPRITE_SIZE(a) 						(float)((a) * (SPRITE_SIZE_MULTIPLIER))
 
-#define GAME_MIN_TIMER 		(float)2.25f
-#define GAME_MAX_DIFFICULTY	(float)10.0f
+#define GAME_MIN_TIMER 							(float)2.25f
+#define GAME_MAX_DIFFICULTY						(float)10.0f
 
-#define WORLD_GROUND 			(float)1024.0f
-#define WORLD_FOREGROUND_SPEED 	(float)600.0f
-#define WORLD_MIDGROUND_SPEED 	(float)200.0f
-#define WORLD_BACKGROUND_SPEED 	(float)100.0f
+#define WORLD_GROUND 							(float)1024.0f
+#define WORLD_FOREGROUND_SPEED 					(float)600.0f
+#define WORLD_MIDGROUND_SPEED 					(float)200.0f
+#define WORLD_BACKGROUND_SPEED 					(float)100.0f
 
 #define ACTOR_PLAYER_MAX_JUMP_HEIGHT 			(float)300.0f
 #define ACTOR_PLAYER_POS_X 		 				(float)(64.0f * SPRITE_SIZE_MULTIPLIER)

@@ -10,5 +10,7 @@ typedef struct
     Rectangle   a_collision_box;
 } actor;
 
+void actor_move(actor *a);
+void actor_move_without_collision(actor *a);
 
 #endif
