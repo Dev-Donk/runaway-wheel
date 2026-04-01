@@ -21,7 +21,7 @@ Skeleton
 Skull
 Crash
 Horizon
-Succubus
+Succulent
 Flower
 Dry
 Thirsty
@@ -45,3 +45,5 @@ Human remains
 Vultures
 Accident
 Survivor
+Sunburn
+Bleached

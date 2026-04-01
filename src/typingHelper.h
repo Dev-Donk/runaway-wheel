@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-#define MAX_TOKEN_SIZE 100
+#define MAX_TOKEN_SIZE 25
 
 typedef struct {
     struct prompt_entry *head;
@@ -20,12 +20,9 @@ typedef struct {
 
 // Keep in mind amount of temrinators, different with linux and junk
 void list_load_from_text_file(prompt_list *list, const char *file);
-
-void list_print(prompt_list *list);
-
 void list_free(prompt_list *list);
-
-prompt_entry* list_get_random_entry(prompt_list *list);
+void list_print(const prompt_list *list);
+prompt_entry* list_get_random_entry(const prompt_list *list);
 
 
 #endif

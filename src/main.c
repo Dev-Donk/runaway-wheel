@@ -12,12 +12,15 @@ Assisted help from Dr. Thumrongsak
 
 // Includes
 // --------------------------------------------------------------
+// C
 #include <stdlib.h>
 #include <string.h>
 
+// Raylib
 #include "raylib.h"
 #include "resource_dir.h"
 
+// Game
 #include "typingHelper.h"
 #include "actor.h"
 // --------------------------------------------------------------
@@ -27,7 +30,9 @@ Assisted help from Dr. Thumrongsak
 #define SCREEN_WIDTH 							(int)2048
 #define SCREEN_HEIGHT 							(int)1280
 
-#define SPRITE_SIZE_MULTIPLIER 8
+#define TEXT_PROMPT_SIZE						(float)75.0f
+
+#define SPRITE_SIZE_MULTIPLIER 					8
 #define BY_SPRITE_SIZE(a) 						(float)((a) * (SPRITE_SIZE_MULTIPLIER))
 
 #define GAME_MIN_TIMER 							(float)2.25f
@@ -38,13 +43,6 @@ Assisted help from Dr. Thumrongsak
 #define WORLD_MIDGROUND_SPEED 					(float)200.0f
 #define WORLD_BACKGROUND_SPEED 					(float)100.0f
 
-#define ACTOR_PLAYER_MAX_JUMP_HEIGHT 			(float)300.0f
-#define ACTOR_PLAYER_POS_X 		 				(float)(64.0f * SPRITE_SIZE_MULTIPLIER)
-#define ACTOR_PLAYER_ON_GROUND 		 			(float)(WORLD_GROUND - (48.0f * SPRITE_SIZE_MULTIPLIER))
-#define ACTOR_PLAYER_JUMP_SPEED					(float)750.0f
-
-#define ACTOR_OBSTACLE_ON_GROUND				(float)(WORLD_GROUND - (16.0f * SPRITE_SIZE_MULTIPLIER))
-#define ACTOR_COLLISION_OBSTACLE_ON_GROUND		(float)(WORLD_GROUND - (16.0f * SPRITE_SIZE_MULTIPLIER))
 // --------------------------------------------------------------
 
 // Types
@@ -69,23 +67,26 @@ int main ()
 	// Tell the window to use vsync and work on high DPI displays
 	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI);
 
-	// Create the window and OpenGL context
-	// Size set so textures are tilable
 	InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Runaway Wheel");
 
-	// Utility function from resource_dir.h to find the resources folder and set it as the current working directory so we can load from it
 	SearchAndSetResourceDir("resources");
 
+	// Window Icon
 	Image game_icon = LoadImage("cactus.png");
 	SetWindowIcon(game_icon);
 
 	// Load assets
 	// --------------------------------------------------------------
 
-	// Actors
+	Font font = LoadFontEx("KiwiSoda.ttf", 96, 0, 0);
+
+	// Textures
 	Texture game_actor_player 							= LoadTexture("player.png");
+
 	Texture game_actor_obstacle_cactus					= LoadTexture("cactus.png");
 	Texture game_actor_obstacle_danger_sign_0			= LoadTexture("danger_sign_0.png");
+
+	Texture game_actor_obstacle_texts[] = { game_actor_obstacle_cactus, game_actor_obstacle_danger_sign_0 };
 
 	// Backgrounds
 	Texture game_world_sky_box 			= LoadTextureFromImage(GenImageGradientLinear(SCREEN_WIDTH, SCREEN_HEIGHT, 0, WHITE, SKYBLUE));
@@ -103,12 +104,19 @@ int main ()
 	state game_state = PROMPT_LOAD;
 	char key_pressed = 0;
 
+	unsigned char world_actor_player_hit = 0;
+	Rectangle world_fail_collision_box	 = { ACTOR_PLAYER_POS_X + BY_SPRITE_SIZE(64.0f), ACTOR_PLAYER_ON_GROUND, BY_SPRITE_SIZE(2.0f), BY_SPRITE_SIZE(48.0f) };
+
+
+	// Text
+	float text_size_over_time;
+
 	// Time
 	float delta_time;
 	float game_timer;
 	
 	// Difficulty & Score
-	float game_difficulty = 1.0f;
+	float game_difficulty 	= 1.0f;
 	unsigned int game_score = 0;
 
 	// Background speeds
@@ -119,45 +127,49 @@ int main ()
 	float scrolling_back_1 	= 0.0f;
 
 	// Actors
-	actor player = { (Vector2){ ACTOR_PLAYER_POS_X, ACTOR_PLAYER_ON_GROUND }, game_actor_player, };
+	actor player;
 	{
 		player.a_pos 			= (Vector2){ ACTOR_PLAYER_POS_X, ACTOR_PLAYER_ON_GROUND };
+		player.a_speed			= (Vector2){ 0.0f, 0.0f };
 		player.a_texture		= game_actor_player;
-		player.a_collision_box	= (Rectangle){ ACTOR_PLAYER_POS_X + BY_SPRITE_SIZE(64.0f), ACTOR_PLAYER_ON_GROUND + BY_SPRITE_SIZE(32.0f), BY_SPRITE_SIZE(16.0f), BY_SPRITE_SIZE(16.0f) };
+		player.a_collision_box	= (Rectangle){ ACTOR_PLAYER_POS_X + BY_SPRITE_SIZE(128.0f), ACTOR_PLAYER_ON_GROUND, BY_SPRITE_SIZE(2.0f), BY_SPRITE_SIZE(48.0f) };
+		player.a_on_ground		= 1;
 	}
+	float actor_player_jump 					= 0.0f;
+	float actor_player_jump_difficulty_modifier = 0.0f;
+
 	actor obstacle;
 	{
 		obstacle.a_pos 				= (Vector2){ SCREEN_WIDTH, ACTOR_OBSTACLE_ON_GROUND };
-		obstacle.a_texture			= game_actor_obstacle_cactus;
+		obstacle.a_speed			= (Vector2){ 0.0f, 0.0f };
 		obstacle.a_collision_box	= (Rectangle){ SCREEN_WIDTH, ACTOR_OBSTACLE_ON_GROUND, BY_SPRITE_SIZE(16.0f), BY_SPRITE_SIZE(16.0f) };
+		obstacle.a_on_ground		= 1;
 	}
 
 	// Text Loading & Prompts
+	prompt_entry *current_prompt;
+	char *current_prompt_data;
+	size_t current_prompt_location;
+
+	char input_buffer[MAX_TOKEN_SIZE];
+	
 	// Words
 	prompt_list *list_words	= (prompt_list*)malloc(sizeof(prompt_list));
 	{
 		list_words->head = NULL;
 		list_words->size = 0;
 	}
-
 	list_load_from_text_file(list_words, "words.txt");
 	list_print(list_words);
 
 	// Phrases
-	prompt_list *list_phrases 	= (prompt_list*)malloc(sizeof(prompt_list));
+	prompt_list *list_phrases = (prompt_list*)malloc(sizeof(prompt_list));
 	{
 		list_phrases->head = NULL;
 		list_phrases->size = 0;
 	}
-
 	list_load_from_text_file(list_phrases, "phrases.txt");
 	list_print(list_phrases);
-
-	prompt_entry *current_prompt;
-	char *current_prompt_data;
-	size_t current_prompt_location;
-
-	char input_buffer[MAX_TOKEN_SIZE];
 
 	// --------------------------------------------------------------
 
@@ -172,21 +184,24 @@ int main ()
 
 		// World
 		// --------------------------------------------------------------
-		scrolling_front 	-= (WORLD_FOREGROUND_SPEED 				* game_difficulty) * delta_time;
+		if(!world_actor_player_hit)
+		{
+			scrolling_front 		-= (WORLD_FOREGROUND_SPEED 				* game_difficulty) * delta_time;
 
-		scrolling_mid_0 	-= (WORLD_MIDGROUND_SPEED 				* game_difficulty) * delta_time;
-		scrolling_mid_1 	-= ((WORLD_MIDGROUND_SPEED - 25.0f) 	* game_difficulty) * delta_time;
+			scrolling_mid_0 		-= (WORLD_MIDGROUND_SPEED 				* game_difficulty) * delta_time;
+			scrolling_mid_1 		-= ((WORLD_MIDGROUND_SPEED - 25.0f) 	* game_difficulty) * delta_time;
 
-		scrolling_back_0 	-= (WORLD_BACKGROUND_SPEED 				* game_difficulty) * delta_time;
-		scrolling_back_1 	-= ((WORLD_BACKGROUND_SPEED - 25.0f) 	* game_difficulty) * delta_time;
+			scrolling_back_0 		-= (WORLD_BACKGROUND_SPEED 				* game_difficulty) * delta_time;
+			scrolling_back_1 		-= ((WORLD_BACKGROUND_SPEED - 25.0f) 	* game_difficulty) * delta_time;
 
-		if (scrolling_front		<= -game_world_foreground.width 		* SPRITE_SIZE_MULTIPLIER) 	scrolling_front = 0;
+			if (scrolling_front		<= -game_world_foreground.width 		* SPRITE_SIZE_MULTIPLIER) 	scrolling_front = 0;
 
-		if (scrolling_mid_0 	<= -game_world_middleground_0.width  	* SPRITE_SIZE_MULTIPLIER) 	scrolling_mid_0 = 0;
-		if (scrolling_mid_1 	<= -game_world_middleground_1.width  	* SPRITE_SIZE_MULTIPLIER) 	scrolling_mid_1 = 0;
+			if (scrolling_mid_0 	<= -game_world_middleground_0.width  	* SPRITE_SIZE_MULTIPLIER) 	scrolling_mid_0 = 0;
+			if (scrolling_mid_1 	<= -game_world_middleground_1.width  	* SPRITE_SIZE_MULTIPLIER) 	scrolling_mid_1 = 0;
 
-		if (scrolling_back_0 	<= -game_world_background_0.width 		* SPRITE_SIZE_MULTIPLIER) 	scrolling_back_0 = 0;
-		if (scrolling_back_1 	<= -game_world_background_1.width 		* SPRITE_SIZE_MULTIPLIER) 	scrolling_back_1 = 0;
+			if (scrolling_back_0 	<= -game_world_background_0.width 		* SPRITE_SIZE_MULTIPLIER) 	scrolling_back_0 = 0;
+			if (scrolling_back_1 	<= -game_world_background_1.width 		* SPRITE_SIZE_MULTIPLIER) 	scrolling_back_1 = 0;
+		}
 		// --------------------------------------------------------------
 
 		// --------------------------------------------------------------
@@ -217,7 +232,8 @@ int main ()
 				game_state = PROMPT_FAIL;
 			}
 
-			game_timer -= 0.1 * (delta_time * 10);
+			game_timer 			-= 0.1 * (delta_time * 10);
+			text_size_over_time -= ((text_size_over_time / 0.25f) * game_difficulty) * delta_time;
 
 			break;
 
@@ -229,6 +245,7 @@ int main ()
 			if(game_score % 5 == 0 && game_difficulty < GAME_MAX_DIFFICULTY)
 			{
 				game_difficulty += 0.5;
+				actor_player_jump_difficulty_modifier += 0.025f;
 			}
 
 			game_state = JUMP;
@@ -239,38 +256,31 @@ int main ()
 
 			// Update Player
 			// --------------------------------------------------------------
-			if(player.a_pos.y < ACTOR_PLAYER_ON_GROUND && !CheckCollisionRecs(player.a_collision_box, obstacle.a_collision_box))
+			if(CheckCollisionRecs(player.a_collision_box, obstacle.a_collision_box))
 			{
-				player.a_pos.y += ACTOR_PLAYER_JUMP_SPEED * delta_time; // More gravity like when game gets faster
+				actor_player_jump = ACTOR_PLAYER_JUMP_SPEED + (ACTOR_PLAYER_JUMP_SPEED * actor_player_jump_difficulty_modifier);
+			}
+			else
+			{
+				actor_player_jump = 0.0f;
+			}
 
-				if(player.a_pos.y > ACTOR_PLAYER_ON_GROUND)
-				{
-					player.a_pos.y = ACTOR_PLAYER_ON_GROUND;
-				}
-			}
-			else if(CheckCollisionRecs(player.a_collision_box, obstacle.a_collision_box))
-			{
-				player.a_pos.y -= (ACTOR_PLAYER_JUMP_SPEED * game_difficulty) * delta_time;
-			}
+			actor_move(&player, (Vector2){ 0.0f, actor_player_jump }, 0, ACTOR_PLAYER_ON_GROUND, delta_time);
 			// --------------------------------------------------------------
 
 			// Update Obstacle
 			// --------------------------------------------------------------
-			if(obstacle.a_pos.x > -SCREEN_WIDTH)
-			{
-				obstacle.a_pos.x 			-= (WORLD_FOREGROUND_SPEED * game_difficulty) * delta_time;
-				obstacle.a_collision_box.x 	-= (WORLD_FOREGROUND_SPEED * game_difficulty) * delta_time;
-			}
+			actor_move(&obstacle, (Vector2){ (WORLD_FOREGROUND_SPEED * game_difficulty), 0.0f }, -1, ACTOR_OBSTACLE_ON_GROUND, delta_time);
 			// --------------------------------------------------------------
 
 			// Check if both are done
 			// --------------------------------------------------------------
-			if(player.a_pos.y == ACTOR_PLAYER_ON_GROUND && obstacle.a_pos.x < -SCREEN_WIDTH)
+			if(player.a_on_ground && obstacle.a_pos.x < BY_SPRITE_SIZE(-16))
 			{
 				obstacle.a_pos.x 			= SCREEN_WIDTH;
 				obstacle.a_collision_box.x 	= SCREEN_WIDTH;
 
-				game_state 			= PROMPT_LOAD;
+				game_state 					= PROMPT_LOAD;
 			}	
 			// --------------------------------------------------------------
 
@@ -278,7 +288,30 @@ int main ()
 
 		case PROMPT_FAIL:
 
-			printf("\nFAIL!!!");
+			// Update Player
+			// --------------------------------------------------------------
+			if(CheckCollisionRecs(world_fail_collision_box, obstacle.a_collision_box))
+			{
+				world_actor_player_hit = 1;
+			}
+
+			if(world_actor_player_hit)
+				actor_move(&player, (Vector2){ 0.0f, ACTOR_PLAYER_JUMP_SPEED }, 0, SCREEN_HEIGHT, delta_time);
+			// --------------------------------------------------------------
+
+			// Update Obstacle
+			// --------------------------------------------------------------
+			if(!world_actor_player_hit)
+				actor_move(&obstacle, (Vector2){ (WORLD_FOREGROUND_SPEED * game_difficulty), 0.0f }, -1, ACTOR_OBSTACLE_ON_GROUND, delta_time);
+			// --------------------------------------------------------------
+
+			// Check if player out of frame
+			// --------------------------------------------------------------
+			if(world_actor_player_hit && player.a_on_ground)
+			{
+				exit(20);
+			}	
+			// --------------------------------------------------------------
 
 			break;
 
@@ -295,7 +328,11 @@ int main ()
 			current_prompt_location 	= 0;
 			game_timer 					= set_game_timer(current_prompt->data_length, game_difficulty);
 
+			text_size_over_time 		= 500;
+
 			memset(input_buffer, 0, sizeof(input_buffer)); // Who cares if it's a lil slow! :D
+
+			obstacle.a_texture = game_actor_obstacle_texts[GetRandomValue(0, 1)];
 
 			game_state = PROMPT_TYPING;
 
@@ -340,19 +377,18 @@ int main ()
 		// --------------------------------------------------------------
 
 		// Actors
-		DrawRectangleRec(player.a_collision_box, GREEN);
-		DrawTextureEx(player.a_texture, (Vector2){ player.a_pos.x, player.a_pos.y }, 0.0f, (float)SPRITE_SIZE_MULTIPLIER, WHITE);
+		actor_draw(&player, (float)SPRITE_SIZE_MULTIPLIER);
+		actor_draw(&obstacle, (float)SPRITE_SIZE_MULTIPLIER);
 
-		DrawRectangleRec(obstacle.a_collision_box, RED);
-		DrawTextureEx(obstacle.a_texture, (Vector2){ obstacle.a_pos.x, obstacle.a_pos.y }, 0.0f, (float)SPRITE_SIZE_MULTIPLIER, WHITE);
-
+		//DrawRectangleRec(world_fail_collision_box, RED);
 		
 		// UI
 
 		if(game_state != JUMP && game_state != PROMPT_LOAD)
 		{
-			DrawText(current_prompt->data, 200, SCREEN_HEIGHT / 2, 50, BLACK);
-			DrawText(input_buffer, 200, SCREEN_HEIGHT / 2, 50, GRAY);
+			// * (game_timer / current_prompt->data_length)
+			DrawTextEx(font, current_prompt->data, (Vector2){ 250, SCREEN_HEIGHT / 2 }, (TEXT_PROMPT_SIZE + text_size_over_time), 0, BLACK);
+			DrawTextEx(font, input_buffer, (Vector2){ 250, SCREEN_HEIGHT / 2 }, (TEXT_PROMPT_SIZE + text_size_over_time), 0, DARKBLUE);
 
 			DrawText(TextFormat("%02.02f", game_timer), 10, 30, 20, DARKGRAY);
 			DrawText(TextFormat("%d", game_score), 200, 30, 20, DARKGRAY);

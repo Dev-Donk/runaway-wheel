@@ -92,6 +92,31 @@
       "-std=c++17",
       "-c",
       "-o",
+      "obj/x64/Debug/runaway-wheel/actor.o",
+      "../../src/actor.c"
+    ],
+    "directory": "C:/dev/_Games/runaway-wheel/build/build_files",
+    "file": "C:/dev/_Games/runaway-wheel/src/actor.c",
+    "output": "C:/dev/_Games/runaway-wheel/build/build_files/obj/x64/Debug/runaway-wheel/actor.o"
+  },
+  {
+    "arguments": [
+      "g++",
+      "-MD",
+      "-MP",
+      "-DDEBUG",
+      "-DPLATFORM_DESKTOP",
+      "-DGRAPHICS_API_OPENGL_33",
+      "-D_WIN32",
+      "-I../../src",
+      "-I../../include",
+      "-I../external/raylib-master/src",
+      "-m64",
+      "-Wshadow",
+      "-g",
+      "-std=c++17",
+      "-c",
+      "-o",
       "obj/x64/Debug/runaway-wheel/main.o",
       "../../src/main.c"
     ],

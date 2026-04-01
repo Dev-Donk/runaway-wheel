@@ -71,7 +71,7 @@ void list_load_from_text_file(prompt_list *list, const char *file)
     list->size = list_size_count;
 }
 
-void list_print(prompt_list *list) 
+void list_print(const prompt_list *list) 
 {
     prompt_entry *curr = (prompt_entry*)list->head;
 
@@ -101,7 +101,7 @@ void list_free(prompt_list *list)
     free(list); // Assuming if malloced
 }
 
-prompt_entry* list_get_random_entry(prompt_list *list)
+prompt_entry* list_get_random_entry(const prompt_list *list)
 {
     prompt_entry *ret   = (prompt_entry*)list->head;
     int max_count       = GetRandomValue(0, list->size);
