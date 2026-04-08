@@ -21,7 +21,6 @@ typedef struct
 } actor;
 
 void actor_move(actor *a, Vector2 at_speed,  char direction, float on_ground, float delta);
-Texture actor_get_random_texture_from_array(const Texture *arr[]);
 void actor_draw(const actor *a, float sprite_multiplier);
 
 #endif

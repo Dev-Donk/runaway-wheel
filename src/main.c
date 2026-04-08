@@ -27,16 +27,18 @@ Assisted help from Dr. Thumrongsak
 
 // Macros
 // --------------------------------------------------------------
-#define SCREEN_WIDTH 							(int)2048
+#define SCREEN_WIDTH 							(int)3072
 #define SCREEN_HEIGHT 							(int)1280
 
-#define TEXT_PROMPT_SIZE						(float)75.0f
+#define TEXT_PROMPT_SIZE						(float)125.0f
 
 #define SPRITE_SIZE_MULTIPLIER 					8
 #define BY_SPRITE_SIZE(a) 						(float)((a) * (SPRITE_SIZE_MULTIPLIER))
 
-#define GAME_MIN_TIMER 							(float)2.25f
+#define GAME_MIN_TIMER 							(float)1.5f
 #define GAME_MAX_DIFFICULTY						(float)10.0f
+
+#define GAME_ACTOR_OBSTACLE_MAX_SPRITES			(unsigned int)3
 
 #define WORLD_GROUND 							(float)1024.0f
 #define WORLD_FOREGROUND_SPEED 					(float)600.0f
@@ -49,6 +51,8 @@ Assisted help from Dr. Thumrongsak
 // --------------------------------------------------------------
 typedef enum 
 {
+	GAME_START,
+	GAME_OVER,
     PROMPT_TYPING,
     PROMPT_SUCCESS,
     PROMPT_FAIL,
@@ -71,22 +75,26 @@ int main ()
 
 	SearchAndSetResourceDir("resources");
 
-	// Window Icon
-	Image game_icon = LoadImage("cactus.png");
-	SetWindowIcon(game_icon);
-
 	// Load assets
 	// --------------------------------------------------------------
 
-	Font font = LoadFontEx("KiwiSoda.ttf", 96, 0, 0);
+	// Thank you for the amazing font, jeti!
+	Font font = LoadFontEx("PearSoda.ttf", 96, 0, 0);
 
 	// Textures
 	Texture game_actor_player 							= LoadTexture("player.png");
 
-	Texture game_actor_obstacle_cactus					= LoadTexture("cactus.png");
+	Texture game_actor_obstacle_cactus_0				= LoadTexture("cactus_0.png");
+	Texture game_actor_obstacle_cactus_1				= LoadTexture("cactus_1.png");
 	Texture game_actor_obstacle_danger_sign_0			= LoadTexture("danger_sign_0.png");
+	Texture game_actor_obstacle_danger_sign_1			= LoadTexture("danger_sign_1.png");
 
-	Texture game_actor_obstacle_texts[] = { game_actor_obstacle_cactus, game_actor_obstacle_danger_sign_0 };
+	Texture game_actor_obstacle_texts[] = { 
+		game_actor_obstacle_cactus_0,
+		game_actor_obstacle_cactus_1, 
+		game_actor_obstacle_danger_sign_0,
+		game_actor_obstacle_danger_sign_1
+	};
 
 	// Backgrounds
 	Texture game_world_sky_box 			= LoadTextureFromImage(GenImageGradientLinear(SCREEN_WIDTH, SCREEN_HEIGHT, 0, WHITE, SKYBLUE));
@@ -101,7 +109,11 @@ int main ()
 	// Game Essentialsssss
 	// --------------------------------------------------------------
 
-	state game_state = PROMPT_LOAD;
+	// Window Icon
+	Image game_icon = LoadImageFromTexture(game_actor_obstacle_texts[GetRandomValue(0, GAME_ACTOR_OBSTACLE_MAX_SPRITES)]);
+	SetWindowIcon(game_icon);
+
+	state game_state = GAME_START;
 	char key_pressed = 0;
 
 	unsigned char world_actor_player_hit = 0;
@@ -212,135 +224,160 @@ int main ()
 		// Essentially just a player state machine.. kinda
 		switch (game_state)
 		{
-		case PROMPT_TYPING:
-			key_pressed = GetCharPressed();
+			case GAME_START:
+				key_pressed = GetCharPressed();
 
-			if(key_pressed == *current_prompt_data && key_pressed != 0)
-			{
-				printf("%c", key_pressed);
-				input_buffer[current_prompt_location++] = key_pressed;
-
-				current_prompt_data++;
-			}
-
-			if(current_prompt_location >= current_prompt->data_length)
-			{
-				game_state = PROMPT_SUCCESS;
-			}
-			else if(game_timer <= 0.0f)
-			{
-				game_state = PROMPT_FAIL;
-			}
-
-			game_timer 			-= 0.1 * (delta_time * 10);
-			text_size_over_time -= ((text_size_over_time / 0.25f) * game_difficulty) * delta_time;
-
+				if(key_pressed)
+					game_state = PROMPT_LOAD;
 			break;
 
-		case PROMPT_SUCCESS:
+			case GAME_OVER:
+				
+				world_actor_player_hit = 0;
 
-			printf(" | SUCCESS!!!\n");
-			game_score++;
+				game_score = 0;
+				game_difficulty = 1.0f;
 
-			if(game_score % 5 == 0 && game_difficulty < GAME_MAX_DIFFICULTY)
-			{
-				game_difficulty += 0.5;
-				actor_player_jump_difficulty_modifier += 0.025f;
-			}
+				player.a_pos.y 				= ACTOR_PLAYER_ON_GROUND;
+				player.a_collision_box.y	= ACTOR_PLAYER_ON_GROUND;
 
-			game_state = JUMP;
-
-			break;
-
-		case JUMP:
-
-			// Update Player
-			// --------------------------------------------------------------
-			if(CheckCollisionRecs(player.a_collision_box, obstacle.a_collision_box))
-			{
-				actor_player_jump = ACTOR_PLAYER_JUMP_SPEED + (ACTOR_PLAYER_JUMP_SPEED * actor_player_jump_difficulty_modifier);
-			}
-			else
-			{
-				actor_player_jump = 0.0f;
-			}
-
-			actor_move(&player, (Vector2){ 0.0f, actor_player_jump }, 0, ACTOR_PLAYER_ON_GROUND, delta_time);
-			// --------------------------------------------------------------
-
-			// Update Obstacle
-			// --------------------------------------------------------------
-			actor_move(&obstacle, (Vector2){ (WORLD_FOREGROUND_SPEED * game_difficulty), 0.0f }, -1, ACTOR_OBSTACLE_ON_GROUND, delta_time);
-			// --------------------------------------------------------------
-
-			// Check if both are done
-			// --------------------------------------------------------------
-			if(player.a_on_ground && obstacle.a_pos.x < BY_SPRITE_SIZE(-16))
-			{
 				obstacle.a_pos.x 			= SCREEN_WIDTH;
 				obstacle.a_collision_box.x 	= SCREEN_WIDTH;
 
-				game_state 					= PROMPT_LOAD;
-			}	
-			// --------------------------------------------------------------
+				game_state = GAME_START;
+			break;
+
+			case PROMPT_TYPING:
+				key_pressed = GetCharPressed();
+
+				if(key_pressed == *current_prompt_data && key_pressed != 0)
+				{
+					printf("%c", key_pressed);
+					input_buffer[current_prompt_location++] = key_pressed;
+
+					current_prompt_data++;
+				}
+
+				if(current_prompt_location >= current_prompt->data_length)
+				{
+					game_state = PROMPT_SUCCESS;
+				}
+				else if(game_timer <= 0.0f)
+				{
+					game_state = PROMPT_FAIL;
+				}
+
+				game_timer 			-= 0.1 * (delta_time * 10);
+				text_size_over_time -= ((text_size_over_time / 0.25f) * game_difficulty) * delta_time;
 
 			break;
 
-		case PROMPT_FAIL:
+			case PROMPT_SUCCESS:
 
-			// Update Player
-			// --------------------------------------------------------------
-			if(CheckCollisionRecs(world_fail_collision_box, obstacle.a_collision_box))
-			{
-				world_actor_player_hit = 1;
-			}
+				printf(" | SUCCESS!!!\n");
+				game_score++;
 
-			if(world_actor_player_hit)
-				actor_move(&player, (Vector2){ 0.0f, ACTOR_PLAYER_JUMP_SPEED }, 0, SCREEN_HEIGHT, delta_time);
-			// --------------------------------------------------------------
+				game_state = JUMP;
 
-			// Update Obstacle
-			// --------------------------------------------------------------
-			if(!world_actor_player_hit)
+			break;
+
+			case JUMP:
+
+				// Update Player
+				// --------------------------------------------------------------
+				if(CheckCollisionRecs(player.a_collision_box, obstacle.a_collision_box))
+				{
+					actor_player_jump = ACTOR_PLAYER_JUMP_SPEED + (ACTOR_PLAYER_JUMP_SPEED * actor_player_jump_difficulty_modifier);
+				}
+				else
+				{
+					actor_player_jump = 0.0f;
+				}
+
+				actor_move(&player, (Vector2){ 0.0f, actor_player_jump }, 0, ACTOR_PLAYER_ON_GROUND, delta_time);
+				// --------------------------------------------------------------
+
+				// Update Obstacle
+				// --------------------------------------------------------------
 				actor_move(&obstacle, (Vector2){ (WORLD_FOREGROUND_SPEED * game_difficulty), 0.0f }, -1, ACTOR_OBSTACLE_ON_GROUND, delta_time);
-			// --------------------------------------------------------------
+				// --------------------------------------------------------------
 
-			// Check if player out of frame
-			// --------------------------------------------------------------
-			if(world_actor_player_hit && player.a_on_ground)
-			{
-				exit(20);
-			}	
-			// --------------------------------------------------------------
+				// Check if both are done
+				// --------------------------------------------------------------
+				if(player.a_on_ground && obstacle.a_pos.x < BY_SPRITE_SIZE(-16))
+				{
+					// TODO: MAKE THIS A FUNCTION
+					// Update difficulty
+					if(game_difficulty < GAME_MAX_DIFFICULTY)
+					{
+						game_difficulty += 0.25;
+						actor_player_jump_difficulty_modifier += 0.0025f;
+					}
+
+					obstacle.a_pos.x 			= SCREEN_WIDTH;
+					obstacle.a_collision_box.x 	= SCREEN_WIDTH;
+
+					game_state 					= PROMPT_LOAD;
+				}	
+				// --------------------------------------------------------------
+
+			break;
+
+			case PROMPT_FAIL:
+
+				// Update Player
+				// --------------------------------------------------------------
+				if(CheckCollisionRecs(world_fail_collision_box, obstacle.a_collision_box))
+				{
+					world_actor_player_hit = 1;
+				}
+
+				if(world_actor_player_hit)
+					actor_move(&player, (Vector2){ 0.0f, ACTOR_PLAYER_JUMP_SPEED }, 0, SCREEN_HEIGHT + BY_SPRITE_SIZE(32), delta_time);
+				// --------------------------------------------------------------
+
+				// Update Obstacle
+				// --------------------------------------------------------------
+				if(!world_actor_player_hit)
+					actor_move(&obstacle, (Vector2){ (WORLD_FOREGROUND_SPEED * game_difficulty), 0.0f }, -1, ACTOR_OBSTACLE_ON_GROUND, delta_time);
+				// --------------------------------------------------------------
+
+				// Check if player out of frame
+				// --------------------------------------------------------------
+				if(world_actor_player_hit && player.a_on_ground)
+				{
+					game_state = GAME_OVER;
+				}	
+				// --------------------------------------------------------------
 
 			break;
 
-		case PROMPT_LOAD:
+			case PROMPT_LOAD:
 
-			if(GetRandomValue(0, 1))
-			{
-				current_prompt = list_get_random_entry(list_words);
-			} else {
-				current_prompt = list_get_random_entry(list_phrases);
-			}
+				if(GetRandomValue(0, 1))
+				{
+					current_prompt = list_get_random_entry(list_words);
+				} else {
+					current_prompt = list_get_random_entry(list_phrases);
+				}
 
-			current_prompt_data 		= current_prompt->data;
-			current_prompt_location 	= 0;
-			game_timer 					= set_game_timer(current_prompt->data_length, game_difficulty);
+				current_prompt_data 		= current_prompt->data;
+				current_prompt_location 	= 0;
+				game_timer 					= set_game_timer(current_prompt->data_length, game_difficulty);
 
-			text_size_over_time 		= 500;
+				text_size_over_time 		= 500;
 
-			memset(input_buffer, 0, sizeof(input_buffer)); // Who cares if it's a lil slow! :D
+				memset(input_buffer, 0, sizeof(input_buffer)); // Who cares if it's a lil slow! :D
 
-			obstacle.a_texture = game_actor_obstacle_texts[GetRandomValue(0, 1)];
+				obstacle.a_texture = game_actor_obstacle_texts[GetRandomValue(0, GAME_ACTOR_OBSTACLE_MAX_SPRITES)];
 
-			game_state = PROMPT_TYPING;
+				game_state = PROMPT_TYPING;
 
 			break;
-		
-		default:
-			printf("[ERROR] Invalid or Unknown game state.");
-			exit(-1);
+			
+			default:
+				printf("[ERROR] Invalid or Unknown game state.");
+				exit(-1);
 		}
 		// --------------------------------------------------------------
 
@@ -377,25 +414,36 @@ int main ()
 		// --------------------------------------------------------------
 
 		// Actors
-		actor_draw(&player, (float)SPRITE_SIZE_MULTIPLIER);
+		if(game_state != GAME_START && game_state != GAME_OVER)
+			actor_draw(&player, (float)SPRITE_SIZE_MULTIPLIER);
+		
 		actor_draw(&obstacle, (float)SPRITE_SIZE_MULTIPLIER);
 
 		//DrawRectangleRec(world_fail_collision_box, RED);
 		
 		// UI
 
-		if(game_state != JUMP && game_state != PROMPT_LOAD)
+		if(game_state == GAME_START)
+			DrawTextEx(font, "Press any button to start", (Vector2){ SCREEN_WIDTH / 4, SCREEN_HEIGHT / 2 }, 150, 0.0f, BLACK);
+
+		if(game_state != GAME_START && game_state != GAME_OVER && game_state != JUMP && game_state != PROMPT_LOAD && game_state != PROMPT_FAIL)
 		{
 			// * (game_timer / current_prompt->data_length)
-			DrawTextEx(font, current_prompt->data, (Vector2){ 250, SCREEN_HEIGHT / 2 }, (TEXT_PROMPT_SIZE + text_size_over_time), 0, BLACK);
-			DrawTextEx(font, input_buffer, (Vector2){ 250, SCREEN_HEIGHT / 2 }, (TEXT_PROMPT_SIZE + text_size_over_time), 0, DARKBLUE);
+			//DrawRectangle(248, SCREEN_HEIGHT / 2, current_prompt->data_length * 100, 75, Fade(DARKBLUE, 50.0f));
+			DrawTextEx(font, current_prompt->data, (Vector2){ 250, (SCREEN_HEIGHT / 2) - 100 }, (TEXT_PROMPT_SIZE + text_size_over_time), 0, Fade(BLACK, 0.5f));
+			DrawTextEx(font, input_buffer, (Vector2){ 250, (SCREEN_HEIGHT / 2) - 100 }, (TEXT_PROMPT_SIZE + text_size_over_time), 0, BLACK);
 
-			DrawText(TextFormat("%02.02f", game_timer), 10, 30, 20, DARKGRAY);
-			DrawText(TextFormat("%d", game_score), 200, 30, 20, DARKGRAY);
+			DrawTextEx(font, TextFormat("%02.02f", game_timer), (Vector2){ 250, (SCREEN_HEIGHT / 2) - 200 }, (75 + text_size_over_time), 0.0f, BLACK);
+			
+			DrawTextEx(font, TextFormat("%d", game_score), (Vector2){ SCREEN_WIDTH / 2, 30 }, 100, 0.0f, BLACK);
 		}
 
-		DrawText(TextFormat("Game state: %d", game_state), 200, 50, 20, DARKGRAY);
-		DrawText(TextFormat("Difficulty: %.02f", game_difficulty), 200, 70, 20, DARKGRAY);
+		if(world_actor_player_hit)
+			DrawTextEx(font, TextFormat("Score: %d", game_score), (Vector2){ SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 }, 150, 0.0f, BLACK);
+
+
+		//DrawText(TextFormat("Game state: %d", game_state), 200, 50, 20, DARKGRAY);
+		//DrawText(TextFormat("Difficulty: %.02f", game_difficulty), 200, 70, 20, DARKGRAY);
 		// --------------------------------------------------------------
 
 		
@@ -416,8 +464,10 @@ int main ()
 	UnloadTexture(game_world_background_1);
 
 	UnloadTexture(game_actor_player);
-	UnloadTexture(game_actor_obstacle_cactus);
+	UnloadTexture(game_actor_obstacle_cactus_0);
+	UnloadTexture(game_actor_obstacle_cactus_1);
 	UnloadTexture(game_actor_obstacle_danger_sign_0);
+	UnloadTexture(game_actor_obstacle_danger_sign_1);
 
 	list_free(list_words);
 	list_free(list_phrases);
@@ -433,5 +483,5 @@ int main ()
 // Checks to see if less than GAME_MIN_TIMER, and returns calculated value or GAME_MIN_TIMER
 float set_game_timer(float p_length, float g_difficulty) 
 {
-	return (p_length * 2) / g_difficulty > GAME_MIN_TIMER ? (p_length * 2) / g_difficulty : GAME_MIN_TIMER;
+	return (p_length * 1.25) / g_difficulty > GAME_MIN_TIMER ? (p_length * 1.25) / g_difficulty : GAME_MIN_TIMER;
 }

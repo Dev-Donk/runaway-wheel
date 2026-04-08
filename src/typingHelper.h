@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 
-#define MAX_TOKEN_SIZE 25
+#define MAX_TOKEN_SIZE 45
 
 typedef struct {
     struct prompt_entry *head;

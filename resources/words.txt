@@ -47,3 +47,6 @@ Accident
 Survivor
 Sunburn
 Bleached
+Mummy
+Tomb
+Pyramid

@@ -9,13 +9,13 @@ BEGIN
     //BLOCK "080904E4"  // English UK
     BLOCK "040904E4"    // English US
     BEGIN
-      //VALUE "CompanyName", "raylib technologies"
-      VALUE "FileDescription", "A cool game made with raylib (www.raylib.com)"
+      //VALUE "CompanyName", "Dante Samarco"
+      VALUE "FileDescription", "Capstone project for INFSCI 1750 at the University of Pittsburgh"
       VALUE "FileVersion", "1.0.0"
-      VALUE "InternalName", "cool game"
-      VALUE "LegalCopyright", "(c) 2025 YOUR NAME"
-      //VALUE "OriginalFilename", "raylib_app"
-      VALUE "ProductName", "A cool game"
+      VALUE "InternalName", "r-wheel"
+      VALUE "LegalCopyright", "(c) 2025 Dante Samarco"
+      //VALUE "OriginalFilename", "runaway-wheel"
+      VALUE "ProductName", "Runaway Wheel"
       VALUE "ProductVersion", "1.0.0"
     END
   END
