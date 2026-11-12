@@ -8,8 +8,9 @@
 Runaway Wheel is an infinite-runner game to challenge the player of their familiarity with a keyboard by typing out words/phrases in order to jump over obstacles that come their way. Anyone, aged 10 & up, are tasked to overcome obstacles by matching the words/phrases presented to them on screen. Games within the genre often test the user’s reflex skill, with the control scheme usually consisting of pressing one button, spacebar or tapping the screen. Runaway Wheel aims to go about the general gameplay loop of an infinite-runner in a different way, and the goal is to shake up the genre in a meanigful way.
 
 ## Tech Stack
-- Programming: C, Raylib, VS Code
-- Art: Aseprite
+- Programming:     C, Raylib
+- Text Editor:     VS Code
+- Art:             Aseprite
 
 ## Learning Objective
 Runaway Wheel is a personal game project of mine, it was an idea I've had rolling around in my head, no pun intended, for about over a year by now. I wanted one of my final college projects to end with a bang, one where I put the programming and art skills that I've learned throughout my college career to the test.
