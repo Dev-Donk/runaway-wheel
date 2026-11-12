@@ -1,5 +1,4 @@
 # Runaway Wheel
----
 ### Author: Dante Samarco
 ### University of Pittsburgh
 ### Spring Semester 2026
